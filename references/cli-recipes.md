@@ -70,15 +70,25 @@ Do not run key-management commands such as `dw keys create` or
 
 ## Model Discovery
 
-Use the installed CLI to verify available model names and details:
+Use the installed CLI to verify available model names and details. Prefer this
+over the snapshot tables in `references/models-and-pricing.md`.
+
+`dw models list` and `dw models get` require full `dw login` (platform access).
+API-key login (`dw login --api-key`) does not enable these commands — do not
+retry forever; fall back to `https://doubleword.ai/llms.txt` and
+`https://docs.doubleword.ai/llms.txt` instead.
 
 ```bash
 dw models list
 dw models list --type chat
 dw models list --type embeddings
+dw models list --output json   # when parsing programmatically
 : "${MODEL:?set MODEL to the model to inspect}"
 dw models get "$MODEL"
 ```
+
+Output formats: `--output table` (TTY default), `json` (pipe default), or
+`plain`. Filter with `--type` (for example `chat` or `embeddings`).
 
 ## JSONL Validation
 
@@ -250,3 +260,77 @@ client = OpenAI(
 ```
 
 Keep SDK credentials in environment variables. Do not hard-code or print them.
+
+## Autobatcher (Python)
+
+Use Autobatcher when the user wants normal async OpenAI-style calls that
+automatically batch for async or batch pricing. Fetch the live docs first:
+
+`https://docs.doubleword.ai/inference-api/autobatcher.md`
+
+Also useful: `https://github.com/doublewordai/autobatcher` and
+`https://pypi.org/project/autobatcher/`.
+
+```bash
+pip install autobatcher
+```
+
+```python
+import os
+from autobatcher import AsyncOpenAI
+
+client = AsyncOpenAI(
+    api_key=os.environ["DOUBLEWORD_API_KEY"],
+    base_url="https://api.doubleword.ai/v1",
+)
+
+response = await client.chat.completions.create(
+    model="openai/gpt-oss-20b",
+    messages=[{"role": "user", "content": "Explain batch inference briefly."}],
+)
+```
+
+Swap `AsyncOpenAI` for `BatchOpenAI` for bulk lowest-cost workloads. Do not use
+Autobatcher for interactive realtime prompts; use `dw realtime` or the standard
+OpenAI client for those.
+
+## Prompt caching
+
+Fetch the live guide first:
+
+`https://docs.doubleword.ai/inference-api/prompt-caching.md`
+
+Use `cache_control` on stable content blocks (tools, system, shared documents)
+before the per-request user turn. Confirm the selected model supports caching
+in the model catalog.
+
+```python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["DOUBLEWORD_API_KEY"],
+    base_url="https://api.doubleword.ai/v1",
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-oss-20b",
+    messages=[
+        {
+            "role": "system",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "<large stable instructions or context>",
+                    "cache_control": {"type": "ephemeral", "ttl": "1h"},
+                }
+            ],
+        },
+        {"role": "user", "content": "How do I reset my password?"},
+    ],
+)
+```
+
+Check `usage.cache_read_input_tokens` / `usage.cache_creation_input_tokens` to
+confirm writes and reads. Do not assume Responses API caching; use Chat
+Completions or Anthropic Messages until docs say otherwise.

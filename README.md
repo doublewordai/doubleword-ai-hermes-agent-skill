@@ -1,12 +1,43 @@
 # Doubleword.ai Hermes Agent Skill
 
-The `doubleword` skill helps Hermes and OpenClaw agents run cost-aware LLM
+The `doubleword` skill helps agents like Hermes and OpenClaw run cost-aware LLM
 inference on Doubleword.ai. It gives agents a practical operating procedure for
 choosing between realtime, async, and 24-hour batch inference, validating local
 JSONL payloads, submitting jobs through the `dw` CLI, and retrieving results.
 
 Doubleword.ai provides high-performance inference for generation, extraction,
 classification, OCR, embeddings, evals, and large data-processing workflows.
+
+## Installation
+
+Install with the Skills CLI:
+
+```bash
+npx skills add https://github.com/doublewordai/doubleword-ai-hermes-agent-skill
+```
+
+Or clone into your agent skills directory:
+
+```bash
+git clone https://github.com/doublewordai/doubleword-ai-hermes-agent-skill
+```
+
+### Updating
+
+```bash
+npx skills update doubleword
+```
+
+Or, if you installed via git:
+
+```bash
+git pull
+```
+
+Some agents, like Hermes and OpenClaw, may use a different skills path than the
+default Skills CLI targets. If the one-liner does not land where your harness
+loads skills, clone or copy this repository into that harness skills directory
+instead.
 
 ## Get a Doubleword.ai Account
 
@@ -45,7 +76,7 @@ as the inference-authentication probe before uploading or submitting jobs.
 - Validates JSONL payloads locally before upload.
 - Encourages deterministic request IDs so batch results can be joined back to
   source data.
-- Avoids long idle polling loops that are unsafe for Hermes agents.
+- Avoids long idle polling loops that are unsafe for agents like Hermes.
 - Points agents to detailed command, model, and pricing references only when
   needed.
 
@@ -75,8 +106,8 @@ skill procedure.
 
 - [`SKILL.md`](./SKILL.md) - Main skill definition and agent procedure.
 - [`references/cli-recipes.md`](./references/cli-recipes.md) - Doubleword CLI
-  recipes, official command reference link, and Hermes-specific execution
-  guardrails.
+  recipes, official command reference link, and non-blocking execution
+  guardrails for agents like Hermes.
 - [`references/models-and-pricing.md`](./references/models-and-pricing.md) -
   Model selection guidance, pricing tables, and batch limits.
 
@@ -85,12 +116,29 @@ skill procedure.
 - A Doubleword.ai account.
 - `DOUBLEWORD_API_KEY` configured in the agent environment.
 - The Doubleword `dw` CLI available wherever the agent runs Doubleword jobs.
-- Terminal access for Hermes/OpenClaw skill execution.
+- Terminal access for agent skill execution (for example Hermes or OpenClaw).
 
 ## Documentation
 
 - Doubleword.ai: [https://doubleword.ai](https://doubleword.ai/)
 - Doubleword API base URL: `https://api.doubleword.ai/v1`
+- Live product / models index:
+  [https://doubleword.ai/llms.txt](https://doubleword.ai/llms.txt)
+- Live docs index (CLI, caching, API, models):
+  [https://docs.doubleword.ai/llms.txt](https://docs.doubleword.ai/llms.txt)
+- Most docs pages have a `.md` counterpart (append `.md` to the URL), for
+  example
+  [intro](https://docs.doubleword.ai/inference-api/intro-to-doubleword-inference.md)
+  and
+  [autobatcher](https://docs.doubleword.ai/inference-api/autobatcher.md).
+- Prompt caching:
+  [https://docs.doubleword.ai/inference-api/prompt-caching.md](https://docs.doubleword.ai/inference-api/prompt-caching.md)
+- Autobatcher (Python):
+  [docs](https://docs.doubleword.ai/inference-api/autobatcher.md),
+  [GitHub](https://github.com/doublewordai/autobatcher),
+  [PyPI](https://pypi.org/project/autobatcher/)
+- List available models with `dw models list` when the CLI has full platform
+  login (not API-key-only auth).
 - `dw` CLI command reference:
   [https://doublewordai.github.io/dw/commands.html](https://doublewordai.github.io/dw/commands.html)
 
