@@ -67,6 +67,11 @@ locally and uses a non-interactive, token-limited realtime request, such as
 `MODEL="${MODEL:-openai/gpt-oss-20b}"; dw realtime "$MODEL" "Reply with OK." --temperature 0 --max-tokens 2 --no-stream`,
 as the inference-authentication probe before uploading or submitting jobs.
 
+Note that `openai/gpt-oss-20b` is a reasoning model, so under a tight
+`max_tokens` it can spend the budget on reasoning and return empty content with
+`finish_reason` of `length`. Treat a zero exit code, not the reply text, as
+probe success, and give real jobs a generous `max_tokens`.
+
 ## What This Skill Does
 
 - Routes small interactive prompts to realtime inference.
