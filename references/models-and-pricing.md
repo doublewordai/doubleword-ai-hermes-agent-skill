@@ -1,5 +1,10 @@
 # Doubleword Models and Pricing Reference
 
+This file is a **selection heuristic / pricing snapshot**, not the live model
+catalogue. Authoritative current models come from `dw models list` (full
+`dw login`) or from `https://doubleword.ai/llms.txt` and
+`https://docs.doubleword.ai/llms.txt`.
+
 Use this reference when the user asks about cost, when model choice is
 ambiguous, or before submitting a large or expensive job. Prices are per 1M
 tokens, input / output, unless otherwise noted.

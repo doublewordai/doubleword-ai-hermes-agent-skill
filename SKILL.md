@@ -1,7 +1,7 @@
 ---
 name: doubleword
 description: Route Doubleword LLM inference and data-processing jobs across realtime, async, and batch tiers using the dw CLI or OpenAI-compatible API.
-version: 1.0.0
+version: 1.0.1
 platforms: [linux, macos]
 metadata:
   hermes:
@@ -23,16 +23,85 @@ OCR, embeddings, evals, or dataset processing through Doubleword
 (`https://api.doubleword.ai/v1`).
 
 Prefer the native `dw` CLI for file, async, and batch workflows. Use the
-OpenAI-compatible SDK only when programmatic request construction or streaming
-control is clearer than CLI execution.
+OpenAI-compatible SDK or Autobatcher only when programmatic request construction
+is clearer than CLI execution.
 
 Load references only when needed:
 
-- `references/models-and-pricing.md` for model choice, cost comparison, and
-  task-specific model tables.
+- `references/models-and-pricing.md` for selection heuristics and a pricing
+  snapshot (not the live model catalogue).
 - `references/cli-recipes.md` for exact validation, submission, status,
-  retrieval, resume, SDK fallback commands, and the official Doubleword command
-  reference link.
+  retrieval, resume, SDK/Autobatcher fallback commands, and the official
+  Doubleword command reference link.
+
+## Live documentation
+
+Fetch live product and docs indexes before inventing model IDs, pricing, or
+API details this skill does not embed:
+
+- Product / company / models overview: `https://doubleword.ai/llms.txt`
+- Docs index (CLI, prompt caching, API, models, integrations):
+  `https://docs.doubleword.ai/llms.txt`
+
+Most docs pages have a markdown counterpart: append `.md` to the URL and fetch
+that instead of scraping HTML. This applies across the docs site, including
+integrations and overview pages. Examples:
+
+- `https://docs.doubleword.ai/inference-api/intro-to-doubleword-inference`
+  → `https://docs.doubleword.ai/inference-api/intro-to-doubleword-inference.md`
+- `https://docs.doubleword.ai/inference-api/autobatcher`
+  → `https://docs.doubleword.ai/inference-api/autobatcher.md`
+- `https://docs.doubleword.ai/inference-api/prompt-caching`
+  → `https://docs.doubleword.ai/inference-api/prompt-caching.md`
+
+Use these indexes and `.md` pages for topics the skill does not embed,
+especially prompt caching, CLI details, Autobatcher, integrations, and newly
+listed models.
+
+## Autobatcher (Python)
+
+When the user wants OpenAI-SDK-shaped Python code that transparently uses async
+or batch pricing (without hand-writing JSONL), use Autobatcher:
+
+- Package: `pip install autobatcher` (`https://pypi.org/project/autobatcher/`)
+- Source: `https://github.com/doublewordai/autobatcher`
+- Live docs: fetch `https://docs.doubleword.ai/inference-api/autobatcher.md`
+  before inventing APIs or options
+
+Prefer `AsyncOpenAI` from `autobatcher` for same-session async work, and
+`BatchOpenAI` for bulk lowest-cost jobs. Point `base_url` at
+`https://api.doubleword.ai/v1`. See `references/cli-recipes.md` for a minimal
+Python pattern. Keep preferring `dw` for explicit JSONL file/batch workflows.
+
+## Prompt caching
+
+When many requests share a large stable prefix (system prompt, tools, schemas,
+documents, or codebase context), use prompt caching to cut repeated input cost.
+Fetch the live guide before inventing markers or pricing:
+
+`https://docs.doubleword.ai/inference-api/prompt-caching.md`
+
+Key agent rules:
+
+- Caching is **opt-in**: every request that should hit the cache must include
+  the same `cache_control` marker(s). Without markers, nothing is read from
+  cache even if an identical prefix was written earlier.
+- Supported today on OpenAI Chat Completions (`/v1/chat/completions`) and
+  Anthropic Messages (`/v1/messages`). The OpenAI Responses API
+  (`/v1/responses`) is not supported yet.
+- Not every model supports caching. Confirm via the model catalog
+  (`cache_pricing.enabled: true`) rather than assuming it is available.
+- Put stable content first and volatile content last. Place
+  `cache_control: { "type": "ephemeral", "ttl": "5m" | "1h" }` at the end of
+  each segment that changes on its own cadence (up to 4 breakpoints).
+- Matching is left-anchored and byte-identical; keep cached blocks in a
+  consistent order. Confirm hits via `usage` fields such as
+  `cache_read_input_tokens` and `cache_creation_input_tokens`.
+- Prefer caching when the shared prefix is large enough for the selected model
+  (minimum is model-specific; often 1,024 tokens) and will be reused. Skip it
+  for one-off prompts.
+
+See `references/cli-recipes.md` for a minimal Chat Completions marker example.
 
 ## Procedure
 
@@ -56,9 +125,20 @@ Load references only when needed:
    - Batch with a 24h completion window for lowest-cost large jobs.
 4. Select a model:
    - respect explicit user choices unless incompatible with the task;
+   - prefer live discovery: run `dw models list` (and `dw models get <id>` when
+     detail is needed). See `references/cli-recipes.md` for filters and output
+     formats;
+   - `dw models list` / `dw models get` require full `dw login` (platform
+     access). API-key login (`dw login --api-key`) does not enable models
+     commands — if listing fails, treat it as an auth/scope issue, not as
+     “no models exist”;
+   - for headless/API-key agents, skip CLI listing and fetch the two `llms.txt`
+     indexes (and the models pages they index) instead of inventing IDs from
+     the snapshot table;
    - use specialized OCR or embedding models for those task types;
    - otherwise choose the cheapest capable model;
-   - load `references/models-and-pricing.md` if cost/model detail matters.
+   - load `references/models-and-pricing.md` only as a selection heuristic /
+     snapshot, never as the live catalogue.
 5. Prepare JSONL input for multi-request jobs:
    - include stable per-row identifiers when possible;
    - keep each file under 200 MB and 50,000 requests;
